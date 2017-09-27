@@ -17,6 +17,7 @@ Install-Package Serilog.Sinks.Console
 ```csharp
 public class Program
 {
+    ...
     public static int Main(string[] args)
     {
         Log.Logger = new LoggerConfiguration()
@@ -25,24 +26,18 @@ public class Program
             .Enrich.FromLogContext()
             .WriteTo.Console()
             .CreateLogger();
+
 ```
 
-Then, add `UseSerilog()` to the web host builder. A `try`/`catch` block will ensure any configuration issues are appropriately logged:
+A `try`/`catch` block will ensure any configuration issues are appropriately logged:
 
 ```csharp
+
         try
         {
             Log.Information("Starting web host");
 
-            var host = new WebHostBuilder()
-                .UseKestrel()
-                .UseContentRoot(Directory.GetCurrentDirectory())
-                .UseIISIntegration()
-                .UseStartup<Startup>()
-                .UseSerilog() // <-- Add this line
-                .Build();
-
-            host.Run();
+            BuildWebHost(args).Run();
 
             return 0;
         }
@@ -55,6 +50,18 @@ Then, add `UseSerilog()` to the web host builder. A `try`/`catch` block will ens
         {
             Log.CloseAndFlush();
         }
+    }
+```
+
+Then, add `UseSerilog()` to the web host builder:
+
+```csharp
+    public static IWebHost BuildWebHost(string[] args)
+    {            
+        return WebHost.CreateDefaultBuilder(args)
+            .UseStartup<Startup>()
+            .UseSerilog()
+            .Build();
     }
 }
 ```
