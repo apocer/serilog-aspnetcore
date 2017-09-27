@@ -3,6 +3,7 @@ using System.IO;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Serilog;
+using Microsoft.AspNetCore;
 
 namespace SimpleWebSample
 {
@@ -10,11 +11,7 @@ namespace SimpleWebSample
     {
         public static int Main(string[] args)
         {
-            var configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
-                .Build();
+            var configuration = BuildDefaultConfiguration();
 
             Log.Logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(configuration)
@@ -22,22 +19,11 @@ namespace SimpleWebSample
                 .WriteTo.Console()
                 .CreateLogger();
 
+            Log.Information("Getting the motors running...");
+
             try
             {
-                Log.Information("Getting the motors running...");
-
-                var host = new WebHostBuilder()
-                    .UseKestrel()
-                    .UseContentRoot(Directory.GetCurrentDirectory())
-                    .UseIISIntegration()
-                    .UseStartup<Startup>()
-                    .UseConfiguration(configuration)
-                    .UseSerilog()
-                    .Build();
-
-                host.Run();
-
-                return 0;
+                BuildWebHost(args, configuration).Run();
             }
             catch (Exception ex)
             {
@@ -48,6 +34,30 @@ namespace SimpleWebSample
             {
                 Log.CloseAndFlush();
             }
+                        
+            return 0;
+        }
+
+        public static IWebHost BuildWebHost(string[] args, IConfigurationRoot configuration = null)
+        {
+            if(configuration == null)
+            {
+                configuration = BuildDefaultConfiguration();
+            }
+            
+            return WebHost.CreateDefaultBuilder(args)
+                .UseStartup<Startup>()
+                .UseSerilog()
+                .Build();
+        }
+
+        public static IConfigurationRoot BuildDefaultConfiguration()
+        {
+            return new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
+                .Build();
         }
     }
 }
